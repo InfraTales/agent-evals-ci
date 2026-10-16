@@ -1,0 +1,5 @@
+{
+  "trials": 3,
+  "minPassRate": 0.9,
+  "maxCaseDrop": 0
+}

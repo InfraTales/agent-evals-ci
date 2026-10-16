@@ -1,0 +1,62 @@
+[
+  {
+    "traceId": "69e9cc4771d7cabe0d8e8cea33b6b338",
+    "spanId": "d2ee0e4765cc773e",
+    "name": "invoke_agent OrderSupport",
+    "kind": "INTERNAL",
+    "scope": { "name": "strands.telemetry.tracer" },
+    "startTimeUnixNano": 1776929864011990383,
+    "attributes": {
+      "gen_ai.operation.name": "invoke_agent",
+      "gen_ai.agent.name": "OrderSupport",
+      "session.id": "order-session-unified"
+    },
+    "events": [
+      { "name": "gen_ai.user.message", "attributes": { "content": "[{\"text\": \"My order A-1001 arrived broken.\"}]" } },
+      {
+        "name": "gen_ai.choice",
+        "attributes": {
+          "message": "{\"action\": \"refunded\", \"orderId\": \"A-1001\", \"refundAmount\": 42.5, \"reply\": \"Refunded 42.50.\"}",
+          "finish_reason": "end_turn"
+        }
+      }
+    ]
+  },
+  {
+    "traceId": "69e9cc4771d7cabe0d8e8cea33b6b338",
+    "spanId": "0a988e27758ebb54",
+    "name": "execute_tool issue_refund",
+    "kind": "INTERNAL",
+    "scope": { "name": "strands.telemetry.tracer" },
+    "startTimeUnixNano": 1776929866000000000,
+    "attributes": {
+      "gen_ai.operation.name": "execute_tool",
+      "gen_ai.tool.name": "issue_refund",
+      "gen_ai.tool.call.id": "tooluse_B",
+      "gen_ai.tool.status": "success"
+    },
+    "events": [
+      {
+        "name": "gen_ai.tool.message",
+        "attributes": { "content": "{\"orderId\": \"A-1001\", \"amount\": 42.5, \"reason\": \"arrived broken\"}", "role": "tool", "id": "tooluse_B" }
+      }
+    ]
+  },
+  {
+    "traceId": "69e9cc4771d7cabe0d8e8cea33b6b338",
+    "spanId": "0a988e27758ebb53",
+    "name": "execute_tool lookup_order",
+    "kind": "INTERNAL",
+    "scope": { "name": "strands.telemetry.tracer" },
+    "startTimeUnixNano": 1776929865000000000,
+    "attributes": {
+      "gen_ai.operation.name": "execute_tool",
+      "gen_ai.tool.name": "lookup_order",
+      "gen_ai.tool.call.id": "tooluse_A",
+      "gen_ai.tool.status": "success"
+    },
+    "events": [
+      { "name": "gen_ai.tool.message", "attributes": { "content": "{\"orderId\": \"A-1001\"}", "role": "tool", "id": "tooluse_A" } }
+    ]
+  }
+]

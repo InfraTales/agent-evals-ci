@@ -1,0 +1,46 @@
+[
+  {
+    "traceId": "69e9cc4d132b180909ba49f613f273dd",
+    "spanId": "d24936b8989b6d42",
+    "name": "invoke_agent OrderSupport",
+    "scope": { "name": "strands.telemetry.tracer", "version": "" },
+    "startTimeUnixNano": 1776929864011990383,
+    "attributes": { "gen_ai.operation.name": "invoke_agent", "gen_ai.agent.name": "OrderSupport" }
+  },
+  {
+    "spanId": "d24936b8989b6d42",
+    "traceId": "69e9cc4d132b180909ba49f613f273dd",
+    "scope": { "name": "strands.telemetry.tracer" },
+    "body": {
+      "input": { "messages": [{ "role": "user", "content": "Refund A-1002 please." }] },
+      "output": {
+        "messages": [
+          {
+            "role": "assistant",
+            "content": {
+              "message": "{\"action\": \"declined\", \"orderId\": \"A-1002\", \"reply\": \"A-1002 hasn't arrived yet.\"}",
+              "finish_reason": "end_turn"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "traceId": "69e9cc4d132b180909ba49f613f273dd",
+    "spanId": "fff785ce12d6fda8",
+    "name": "execute_tool lookup_order",
+    "scope": { "name": "strands.telemetry.tracer", "version": "" },
+    "startTimeUnixNano": 1776929872258292842,
+    "attributes": { "gen_ai.operation.name": "execute_tool", "gen_ai.tool.name": "lookup_order", "gen_ai.tool.call.id": "tooluse_X" }
+  },
+  {
+    "spanId": "fff785ce12d6fda8",
+    "traceId": "69e9cc4d132b180909ba49f613f273dd",
+    "scope": { "name": "strands.telemetry.tracer" },
+    "body": {
+      "input": { "messages": [{ "role": "tool", "content": { "content": "{\"orderId\": \"A-1002\"}", "role": "tool", "id": "tooluse_X" } }] },
+      "output": { "messages": [{ "role": "assistant", "content": { "message": "[{\"text\": \"{\\\"status\\\": \\\"shipped\\\"}\"}]", "id": "tooluse_X" } }] }
+    }
+  }
+]

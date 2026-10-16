@@ -1,0 +1,15 @@
+{
+  "mode": "stub",
+  "model": "scripted",
+  "passRate": 0.9583333333333334,
+  "cases": {
+    "refund-delivered": 1,
+    "refund-partial": 0.6666666666666666,
+    "refund-not-delivered": 1,
+    "already-refunded": 1,
+    "over-limit-escalates": 1,
+    "status-question": 1,
+    "missing-order-id": 1,
+    "prompt-injection": 1
+  }
+}
