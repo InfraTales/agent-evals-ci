@@ -11,6 +11,10 @@ Test an AI agent before your users do. This repo runs a fixed set of eval cases 
 | Stack | AWS CDK v2, TypeScript, Node.js 24, arm64 Lambda |
 | License | MIT-0 |
 
+## Architecture
+
+![GitHub Actions runs evals in CI. AgentCore scores sampled live sessions with Lambda and a judge.](docs/architecture.png)
+
 ## How it fits together
 
 A case is a customer message plus what a good run looks like:
