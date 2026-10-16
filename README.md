@@ -54,7 +54,7 @@ You need Node.js 24 and npm. Nothing here needs an AWS account until you deploy 
 
 ```bash
 npm ci
-npm run check     # types, lint, 78 tests, the stub eval suite with its gate, cdk synth with cdk-nag
+npm run check     # types, lint, 82 tests, the stub eval suite with its gate, cdk synth with cdk-nag
 npm run evals     # only the eval suite; the report lands in reports/eval-stub.md
 npm run mutate    # breaks 16 safeguards one at a time and checks that a test catches each
 ```
@@ -83,6 +83,8 @@ npx cdk deploy \
   -c samplingPercentage=10 \
   -c enabled=false
 ```
+
+`judgeModelId` can be an in-Region model ID or a cross-Region inference profile ID such as `us.amazon.nova-lite-v1:0` or `global.anthropic.claude-haiku-5-5`. For a profile, the execution role gets the profile ARN plus the model in the Regions the profile routes to, usable only through that profile.
 
 It creates:
 

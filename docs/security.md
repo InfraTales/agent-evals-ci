@@ -5,7 +5,7 @@
 AgentCore Evaluations assumes one IAM role to read spans, call the judge model and run the policy checks.
 
 - **Who can assume it.** Only `bedrock-agentcore.amazonaws.com`, and only when `aws:SourceAccount` and `aws:ResourceAccount` are this account and `aws:SourceArn` is an evaluator or online evaluation config in this account and Region. That stops another account's evaluator from borrowing the role.
-- **What it can do.** It can call `bedrock:InvokeModel` on the judge model's ARN only, and `lambda:InvokeFunction` on the evaluator function only. It writes results to `/aws/bedrock-agentcore/evaluations/*`. It manages the index policy on `aws/spans`.
+- **What it can do.** It can call `bedrock:InvokeModel` on the judge model's ARN only (for an inference profile ID: the profile ARN, plus the model in the Regions it routes to under a `bedrock:InferenceProfileArn` condition), and `lambda:InvokeFunction` on the evaluator function only. It writes results to `/aws/bedrock-agentcore/evaluations/*`. It manages the index policy on `aws/spans`.
 - **The wildcard.** `logs:StartQuery`, `logs:GetQueryResults` and `logs:DescribeLogGroups` use `"Resource": "*"`, as in the role the AgentCore docs publish. cdk-nag flags it, and the stack acknowledges that finding with the reason in code.
 
 ## The evaluator function

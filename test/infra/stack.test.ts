@@ -128,3 +128,49 @@ test('cdk-nag AWS Solutions finds nothing unacknowledged, with a concrete or a t
     for (const plugin of report.pluginReports) expect(plugin.violations).toEqual([]);
   }
 });
+
+describe('a judge on a cross-Region inference profile', () => {
+  const judgeStatements = (t: Template): any[] =>
+    Object.values<any>(t.findResources('AWS::IAM::Policy'))
+      .flatMap((p) => p.Properties.PolicyDocument.Statement)
+      .filter((s) => String(s.Sid).startsWith('InvokeJudge'));
+
+  test('a geographic profile grants the profile, and the model in any Region only through it', () => {
+    const s = judgeStatements(synth({ judgeModelId: 'us.amazon.nova-lite-v1:0' }, 'Geo'));
+    const profileArn = 'arn:aws:bedrock:us-east-1:123456789012:inference-profile/us.amazon.nova-lite-v1:0';
+    expect(s.find((x) => x.Sid === 'InvokeJudge').Resource).toBe(profileArn);
+    const model = s.find((x) => x.Sid === 'InvokeJudgeThroughProfile');
+    expect(model.Resource).toBe('arn:aws:bedrock:*::foundation-model/amazon.nova-lite-v1:0');
+    expect(model.Condition).toEqual({ StringLike: { 'bedrock:InferenceProfileArn': profileArn } });
+  });
+
+  test('a global profile grants the source-Region and the Region-less model ARN, only through the profile', () => {
+    const s = judgeStatements(synth({ judgeModelId: 'global.anthropic.claude-haiku-5-5' }, 'Global'));
+    const profileArn = 'arn:aws:bedrock:us-east-1:123456789012:inference-profile/global.anthropic.claude-haiku-5-5';
+    expect(s.find((x) => x.Sid === 'InvokeJudge').Resource).toBe(profileArn);
+    const model = s.find((x) => x.Sid === 'InvokeJudgeThroughProfile');
+    expect([...model.Resource].sort()).toEqual([
+      'arn:aws:bedrock:::foundation-model/anthropic.claude-haiku-5-5',
+      'arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-5-5',
+    ]);
+    expect(model.Condition).toEqual({ StringLike: { 'bedrock:InferenceProfileArn': profileArn } });
+  });
+
+  test('an in-Region model ID still gets exactly one ARN', () => {
+    const s = judgeStatements(template);
+    expect(s).toHaveLength(1);
+  });
+
+  test('cdk-nag stays clean with either kind of profile, with a concrete or a token account', () => {
+    for (const judgeModelId of ['us.amazon.nova-lite-v1:0', 'global.anthropic.claude-haiku-5-5']) {
+      for (const stackEnv of [env, {}]) {
+        const app = newApp(fs.mkdtempSync(path.join(os.tmpdir(), 'cdk-nag-')));
+        new AgentEvalsStack(app, 'NagProfile', { ...props, judgeModelId, env: stackEnv });
+        cdk.Validations.of(app).addPlugins(new AwsSolutionsChecks(app));
+        const assembly = app.synth();
+        const report = JSON.parse(fs.readFileSync(path.join(assembly.directory, 'validation-report.json'), 'utf8'));
+        for (const plugin of report.pluginReports) expect(plugin.violations).toEqual([]);
+      }
+    }
+  });
+});
