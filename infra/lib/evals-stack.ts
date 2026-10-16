@@ -13,7 +13,11 @@ export interface AgentEvalsStackProps extends cdk.StackProps {
   readonly agentLogGroupName: string;
   /** The agent's OpenTelemetry service name. On AgentCore Runtime: <agent-runtime-name>.<endpoint-name>. */
   readonly agentServiceName: string;
-  /** Bedrock model the custom judge runs on. An in-Region model ID keeps the IAM grant to one ARN. */
+  /**
+   * Bedrock model the custom judge runs on. An in-Region model ID keeps the IAM grant to one ARN.
+   * A cross-Region inference profile ID (us., eu., global. ...) also works: the role then gets
+   * the profile and the model in the Regions it routes to.
+   */
   readonly judgeModelId: string;
   /** Share of sessions to evaluate, 0.01 to 100. */
   readonly samplingPercentage: number;
@@ -97,13 +101,8 @@ export class AgentEvalsStack extends cdk.Stack {
         ],
       }),
     );
-    execRole.addToPolicy(
-      new iam.PolicyStatement({
-        sid: 'InvokeJudge',
-        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-        resources: [`arn:${partition}:bedrock:${region}::foundation-model/${props.judgeModelId}`],
-      }),
-    );
+    const judgeGrant = judgeModelGrant(props.judgeModelId, partition, region, account);
+    for (const statement of judgeGrant.statements) execRole.addToPolicy(statement);
     execRole.addToPolicy(
       new iam.PolicyStatement({
         sid: 'RunPolicyChecks',
@@ -172,5 +171,54 @@ export class AgentEvalsStack extends cdk.Stack {
     ack('*', 'logs:StartQuery, GetQueryResults and DescribeLogGroups need "*". This matches the AgentCore Evaluations service role in the AWS docs.');
     ack(`${logsArn}/aws/bedrock-agentcore/evaluations/*`, 'AgentCore Evaluations writes results to log groups it names under this prefix.');
     ack(`${logsArn}aws/spans:*`, 'The service manages the index policy on the aws/spans log group and its streams.');
+    if (judgeGrant.anyRegionModelArn) {
+      ack(
+        judgeGrant.anyRegionModelArn.replace(partition, show(partition, '<AWS::Partition>')),
+        'A geographic inference profile can route to any Region in its geography. The grant only works through this profile (bedrock:InferenceProfileArn condition).',
+      );
+    }
   }
+}
+
+const JUDGE_ACTIONS = ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'];
+const PROFILE_ID = /^(us|eu|apac|jp|au|ca|us-gov|global)\.(.+)$/;
+
+/**
+ * IAM for the judge model. An in-Region model ID needs one foundation-model ARN. A
+ * cross-Region inference profile ID (us., eu., global. ...) needs the profile ARN plus the
+ * model in every Region the profile can route to, as the Bedrock inference profile
+ * prerequisites page shows. Those model grants only work through the profile.
+ */
+export function judgeModelGrant(
+  modelId: string,
+  partition: string,
+  region: string,
+  account: string,
+): { statements: iam.PolicyStatement[]; anyRegionModelArn?: string } {
+  const profile = PROFILE_ID.exec(modelId);
+  if (!profile) {
+    return {
+      statements: [new iam.PolicyStatement({ sid: 'InvokeJudge', actions: JUDGE_ACTIONS, resources: [`arn:${partition}:bedrock:${region}::foundation-model/${modelId}`] })],
+    };
+  }
+  const [, geo, baseModel] = profile;
+  const profileArn = `arn:${partition}:bedrock:${region}:${account}:inference-profile/${modelId}`;
+  // Global profiles route anywhere: the docs grant the source-Region model and the Region-less model ARN.
+  const anyRegionModelArn = geo === 'global' ? undefined : `arn:${partition}:bedrock:*::foundation-model/${baseModel}`;
+  const modelArns =
+    geo === 'global'
+      ? [`arn:${partition}:bedrock:${region}::foundation-model/${baseModel}`, `arn:${partition}:bedrock:::foundation-model/${baseModel}`]
+      : [anyRegionModelArn as string];
+  return {
+    anyRegionModelArn,
+    statements: [
+      new iam.PolicyStatement({ sid: 'InvokeJudge', actions: JUDGE_ACTIONS, resources: [profileArn] }),
+      new iam.PolicyStatement({
+        sid: 'InvokeJudgeThroughProfile',
+        actions: JUDGE_ACTIONS,
+        resources: modelArns,
+        conditions: { StringLike: { 'bedrock:InferenceProfileArn': profileArn } },
+      }),
+    ],
+  };
 }
